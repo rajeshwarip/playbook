@@ -13,6 +13,5 @@
 
 - name: write splunk config file
   template: src=/etc/ansible/splunk/roles/splunk/templates/web.conf.j2 dest=/opt/splunk/etc/system/local/web.conf
-  notify:
-  - restart splunkd
+  notify: restart splunk
 
