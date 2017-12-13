@@ -1,5 +1,5 @@
 ---
 - name: restart splunk
-  service: name=splunkd state=restarted
+  service: name=splunk state=restarted
   sudo: yes
   sudo_user: splunk
