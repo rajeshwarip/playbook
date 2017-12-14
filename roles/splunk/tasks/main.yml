@@ -15,3 +15,6 @@
   template: src=/etc/ansible/splunk/roles/splunk/templates/web.conf.j2 dest=/opt/splunk/etc/system/local/web.conf
   notify: restart splunk
 
+handlers:
+  - name: restart splunk
+    service: name=splunk state=restarted
