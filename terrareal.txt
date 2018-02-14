@@ -1,0 +1,116 @@
+provider "aws" {
+access_key = "xxxxxxxxxxxxxxx"
+secret_key = "xxxxxxxxxxxxxxxxxxxxxxxxx"
+region = "us-west-2"
+}
+
+resource "aws_instance" "example" {
+ami = "ami-0a00ce72"
+instance_type = "t2.micro"
+key_name = "splmaster"
+tags {
+Name = "new"
+}
+connection {
+type = "ssh"
+user = "ubuntu"
+private_key = "${file("/root/ssh/splmaster.pem")}"
+}
+provisioner "remote-exec" {
+    inline = [
+     "sudo apt-get update",
+     "sudo apt-get install software-properties-common",
+     "echo ' ' | sudo apt-add-repository ppa:ansible/ansible ",
+     "sudo apt-get update",
+     "sudo apt-get install ansible -y",
+     "sudo touch /splmaster.pem",
+
+     ]
+}
+
+provisioner "remote-exec" {
+    inline = [
+    "sudo chown ubuntu: /etc/ansible/hosts"
+   ]
+  }
+  provisioner "file" {
+    source = "/root/ssh/hosts"
+    destination = "/etc/ansible/hosts"
+  }
+  provisioner "remote-exec" {
+   inline = [
+   "sudo chown -R root: /etc/ansible/hosts"
+   ]
+  }
+provisioner "remote-exec" {
+    inline = [
+    "sudo chown ubuntu: /splmaster.pem"
+   ]
+  }
+  provisioner "file" {
+    source = "/root/ssh/splmaster.pem"
+    destination = "/splmaster.pem"
+  }
+  provisioner "remote-exec" {
+   inline = [
+   "sudo chown -R root: /splmaster.pem"
+   ]
+  }
+
+
+  provisioner "remote-exec" {
+    inline = [
+   "sudo chmod 600 /splmaster.pem",
+   "sudo ansible -m ping all -yes"
+]
+}
+}
+
+resource "aws_instance" "example1" {
+ami = "ami-0a00ce72"
+instance_type = "t2.micro"
+key_name = "splmaster"
+tags {
+Name = "agent"
+}
+connection {
+type = "ssh"
+user = "ubuntu"
+private_key = "${file("/root/ssh/splmaster.pem")}"
+}
+provisioner "remote-exec" {
+    inline = [
+     "sudo apt-get update",
+     "sudo apt-get install python -y"
+    ]
+}
+
+provisioner "local-exec" {
+      command = "echo ${aws_instance.example1.public_ip} >>/root/ssh/pub.txt"
+ }
+provisioner "local-exec" {
+      command = "echo ansible_ssh_private_key_file=/splmaster.pem >> /root/ssh/pub.txt"
+}
+
+provisioner "local-exec" {
+      command = "echo ansible_ssh_user=ubuntu >> /root/ssh/pub.txt"
+}
+provisioner "local-exec" {
+      command = "paste -d ' ' - - - <  /root/ssh/pub.txt > /root/ssh/newpub.txt"
+
+}
+provisioner "local-exec" {
+     command = "echo [ubuntu] >> /root/ssh/ubuntu.txt"
+}
+
+provisioner "local-exec" {
+      command = "sed -i 44r/root/ssh/ubuntu.txt /root/ssh/hosts"
+}
+
+provisioner "local-exec" {
+      command = "sed -i 45r/root/ssh/newpub.txt /root/ssh/hosts"
+}
+provisioner "local-exec" {
+      command = "chmod 600 /root/ssh/hosts"
+}
+}
